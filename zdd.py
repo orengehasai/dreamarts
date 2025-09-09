@@ -119,7 +119,7 @@ def read_graph():
 
 	return edges_with_weights
 
-def print_path(longest_path_info):
+def print_path(longest_path_info, feature_flag):
 	mate_dict, path_edges, length = longest_path_info
 
 	adj = defaultdict(list)
@@ -160,12 +160,12 @@ def print_path(longest_path_info):
 
 	answer = "\r\n".join(map(str, ordered_path))
 	print(f"{Color.GREEN}{answer}{Color.RESET}")
-	print(f"{Color.GREEN}経路: {path_edges}{Color.RESET}")
-	print(f"{Color.GREEN}長さ: {length}{Color.RESET}")
+	if feature_flag:
+		print(f"{Color.GREEN}長さ: {length}{Color.RESET}")
 
 
 if __name__ == '__main__':
 	edges_with_weights = read_graph()
 	longest_path_info = find_longest_route_zdd(edges_with_weights)
-	print_path(longest_path_info)
+	print_path(longest_path_info, False)
 
