@@ -17,7 +17,7 @@ def find_longest_route_zdd(edges_with_weights):
 	# value: (コスト, 辺のリスト)
 	states = {frozenset(): (0, [])}
 	# 最長経路の端点と辺と長さと保持する変数
-	longest_path_info = ({}, [], -1)
+	longest_path_info = ({}, [], -sys.float_info.max)
 
 		# 辺を1本ずつ処理する
 	for u, v in sorted_edges:
@@ -168,4 +168,3 @@ if __name__ == '__main__':
 	edges_with_weights = read_graph()
 	longest_path_info = find_longest_route_zdd(edges_with_weights)
 	print_path(longest_path_info, False)
-
