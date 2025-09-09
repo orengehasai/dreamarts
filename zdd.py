@@ -3,106 +3,98 @@ from color import Color
 from collections import defaultdict
 
 # https://qiita.com/cabernet_rock/items/01c48dd06178ba0768f9
-def zdd(edges_with_weights):
-    # 辺の正規化 (u < v)
-    weights = {}
-    for u, v, w in edges_with_weights:
-        edge = tuple(sorted((u, v)))
-        weights[edge] = w
+def find_longest_route_zdd(edges_with_weights):
+	# 辺の正規化 (u < v)
+	weights = {}
+	for u, v, w in edges_with_weights:
+		edge = tuple(sorted((u, v)))
+		weights[edge] = w
+	# 辺をソートして処理順序を固定
+	sorted_edges = sorted(list(weights.keys()))
 
-    # 辺をソートして処理順序を固定
-    sorted_edges = sorted(list(weights.keys()))
+	# 状態を管理する辞書
+	# keyとして使用するためfrozenset
+	# value: (コスト, 辺のリスト)
+	states = {frozenset(): (0, [])}
+	# 最長経路の端点と辺と長さと保持する変数
+	longest_path_info = ({}, [], -1)
 
-    # 状態を管理する辞書
-    # keyとして使用するためfrozenset
-    # value: (コスト, 辺のリスト)
-    states = {frozenset(): (0, [])}
-    # 最長経路の端点と辺と長さと保持する変数
-    longest_path_info = ({}, [], -1)
+		# 辺を1本ずつ処理する
+	for u, v in sorted_edges:
+		weight = weights[(u, v)]
+		new_states = {}
 
-    # 辺を1本ずつ処理する
-    for u, v in sorted_edges:
-        weight = weights[(u, v)]
-        new_states = states.copy()  # 「この辺を使わない」場合の全状態をコピー
+		for mate_frozenset, (cost, path_edges) in states.items():
+			# 新規の辺 {u, v} を使わない場合
+			if mate_frozenset not in new_states or cost > new_states[mate_frozenset][0]:
+				new_states[mate_frozenset] = (cost, path_edges)
 
-        for mate_frozenset, (cost, path_edges) in states.items():
+			# 新規の辺 {u, v} を使う場合
+			mate = dict(mate_frozenset)
+			# 現在のパスにおける u, v の次数を計算
+			degree_u = sum(1 for edge in path_edges if u in edge)
+			degree_v = sum(1 for edge in path_edges if v in edge)
 
-            # --- この辺 {u, v} を「使う」場合の処理 ---
+			# 辺を追加すると次数が3以上になる頂点は単純経路に反するためスキップ
+			if degree_u >= 2 or degree_v >= 2:
+				continue
+			# 辺 {u, v} を追加することで、単純なサイクルが完成する場合
+			if mate.get(u) == v:
+				#完成する単純なサイクル以外にパス断片が存在する場合はスキップ
+				if(len(mate) > 2):
+					continue
+				new_cost = cost + weight
+				new_path_edges = path_edges + [(u, v)]
 
-            # 現在のパスにおける u, v の次数を計算
-            degree_u = sum(1 for edge in path_edges if u in edge)
-            degree_v = sum(1 for edge in path_edges if v in edge)
+				if new_cost > longest_path_info[2]:
+					longest_path_info = ({}, new_path_edges, new_cost)
+				# 単純サイクルを形成した状態は、これ以上伸長できないため、new_statesには追加せず、枝刈りする
+				continue
 
-            # 辺を追加すると次数が3以上になる頂点は単純経路に反するためスキップ
-            if degree_u >= 2 or degree_v >= 2:
-                continue
+			new_mate = mate.copy()
+			u_is_endpoint = u in new_mate # uが既にパスの端点か
+			v_is_endpoint = v in new_mate # vが既にパスの端点か
 
-            mate = dict(mate_frozenset)
+			# パス断片を追加
+			if not u_is_endpoint and not v_is_endpoint:
+				new_mate[u] = v
+				new_mate[v] = u
 
-            # 辺 {u, v} を追加することで、単純なサイクルが完成する場合
-            if mate.get(u) == v:
-                #完成する単純なサイクル以外にパス断片が存在する場合はスキップ
-                if(len(mate) > 2):
-                    continue
-                new_cost = cost + weight
-                new_path_edges = path_edges + [(u, v)]
+			# 既存のパスを伸長
+			elif u_is_endpoint and not v_is_endpoint:
+				u_remote = new_mate.pop(u)
+				new_mate[u_remote] = v
+				new_mate[v] = u_remote
+			elif v_is_endpoint and not u_is_endpoint:
+				v_remote = new_mate.pop(v)
+				new_mate[u] = v_remote
+				new_mate[v_remote] = u
 
-                # 全体の最長記録を更新
-                if new_cost > longest_path_info[2]:
-                    longest_path_info = ({}, new_path_edges, new_cost)
-                # 単純サイクルを形成した状態は、これ以上伸長できないため、new_statesには追加せず、枝刈りする
-                continue
+			# 2つの異なるパスを連結
+			else: #u_is_endpoint and v_is_endpoint
+				u_remote = new_mate.pop(u)
+				v_remote = new_mate.pop(v)
+				new_mate[u_remote] = v_remote
+				new_mate[v_remote] = u_remote
 
+			new_cost = cost + weight
+			new_path_edges = path_edges + [(u, v)]
 
-            new_mate = mate.copy()
-            u_is_endpoint = u in new_mate # uが既にパスの端点か
-            v_is_endpoint = v in new_mate # vが既にパスの端点か
+			new_mate_frozenset = frozenset(new_mate.items())
+			# 圧縮:同じ接続状態なら、コストが最大のものを代表にする
+			if new_mate_frozenset not in new_states or new_cost > new_states[new_mate_frozenset][0]:
+				new_states[new_mate_frozenset] = (new_cost, new_path_edges)
 
-            # パス断片を追加
-            if not u_is_endpoint and not v_is_endpoint:
-                new_mate[u] = v
-                new_mate[v] = u
+		states = new_states
 
-            # 既存のパスを伸長
-            elif u_is_endpoint and not v_is_endpoint:
-                u_remote = new_mate.pop(u)
-                # new_mate.pop(u_remote)
-                new_mate[u_remote] = v
-                new_mate[v] = u_remote
-            elif v_is_endpoint and not u_is_endpoint:
-                v_remote = new_mate.pop(v)
-                # new_mate.pop(v_remote)
-                new_mate[u] = v_remote
-                new_mate[v_remote] = u
+	# すべての状態の中から、一本道の単純経路（mate配列の要素数が2）で、
+	# かつコストが最大のものを見つける
+	for mate_frozenset, (cost, path_edges) in states.items():
+		if len(mate_frozenset) == 2: # 端点が2つ = 一本道
+			if cost > longest_path_info[2]:
+				longest_path_info = (dict(mate_frozenset), path_edges, cost)
 
-            # 2つの異なるパスを連結
-            else: #u_is_endpoint and v_is_endpoint
-                u_remote = new_mate.pop(u)
-                v_remote = new_mate.pop(v)
-                # new_mate.pop(u_remote)
-                # new_mate.pop(v_remote)
-                new_mate[u_remote] = v_remote
-                new_mate[v_remote] = u_remote
-
-            new_cost = cost + weight
-            new_path_edges = path_edges + [(u, v)]
-
-            # e) 圧縮: 同じ接続状態(mate)なら、コストが最大のものを残す
-            new_mate_frozenset = frozenset(new_mate.items())
-
-            if new_mate_frozenset not in new_states or new_cost > new_states[new_mate_frozenset][0]:
-                new_states[new_mate_frozenset] = (new_cost, new_path_edges)
-
-        states = new_states
-
-    # すべての状態の中から、一本道の単純経路（mate配列の要素数が2）で、
-    # かつコストが最大のものを見つける
-    for mate_frozenset, (cost, path_edges) in states.items():
-        if len(mate_frozenset) == 2: # 端点が2つ = 一本道
-            if cost > longest_path_info[2]:
-                longest_path_info = (dict(mate_frozenset), path_edges, cost)
-
-    return longest_path_info
+	return longest_path_info
 
 def read_graph():
 	edges_with_weights = []
@@ -173,9 +165,7 @@ def print_path(longest_path_info):
 
 
 if __name__ == '__main__':
-
 	edges_with_weights = read_graph()
-	longest_path_info = zdd(edges_with_weights)
-
+	longest_path_info = find_longest_route_zdd(edges_with_weights)
 	print_path(longest_path_info)
 
