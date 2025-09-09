@@ -95,22 +95,37 @@ def find_longest_route_zdd(edges_with_weights):
 
 	return longest_path_info
 
+def is_all_numeric(string_list):
+    for item in string_list:
+        try:
+            float(item)
+        except ValueError:
+            # 変換に失敗した場合 (数値ではない)
+            return False
+    # ループが最後まで完了すれば、すべて数値である
+    return True
+
 def read_graph():
 	edges_with_weights = []
 	while True:
 		line = input()
 		if len(line) == 0:
 			break
-		parts = line.replace(' ', '').split(',')
-		u = int(parts[0])
-		v = int(parts[1])
-		weight = float(parts[2])
+		try:
+			parts = line.replace(' ', '').split(',')
+			if len(parts) != 3:
+				raise ValueError(f"{Color.RED}Error:不正なフォーマットです{Color.RESET}")
+			u = int(parts[0])
+			v = int(parts[1])
+			weight = float(parts[2])
 
-		if u == v:
-			print(f"{Color.RED}Error:自己ループを含んでいます{Color.RESET}", file=sys.stderr)
+			if u == v:
+				raise ValueError(f"{Color.RED}Error:自己ループを含んでいます{Color.RESET}")
+
+			edges_with_weights.append((u, v, weight))
+		except ValueError as e:
+			print(f"{Color.RED}{e}{Color.RESET}", file=sys.stderr)
 			sys.exit(1)
-
-		edges_with_weights.append((u, v, weight))
 
 	if len(edges_with_weights) == 0:
 		print(f"{Color.RED}Error:値を入力してください{Color.RESET}", file=sys.stderr)
