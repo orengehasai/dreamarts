@@ -87,10 +87,9 @@ def find_longest_route_zdd(edges_with_weights):
 
 		states = new_states
 
-	# すべての状態の中から、一本道の単純経路（mate配列の要素数が2）で、
-	# かつコストが最大のものを見つける
+	# すべての状態の中から、一本道の単純経路（mate配列の要素数が2）、かつコストが最大のものを見つける
 	for mate_frozenset, (cost, path_edges) in states.items():
-		if len(mate_frozenset) == 2: # 端点が2つ = 一本道
+		if len(mate_frozenset) == 2:
 			if cost > longest_path_info[2]:
 				longest_path_info = (dict(mate_frozenset), path_edges, cost)
 
