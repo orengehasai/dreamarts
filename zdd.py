@@ -1,5 +1,9 @@
+import sys
+from color import Color
+from collections import defaultdict
 
-def find_all_pairs_longest_path(edges_with_weights):
+# https://qiita.com/cabernet_rock/items/01c48dd06178ba0768f9
+def zdd(edges_with_weights):
     # 辺の正規化 (u < v)
     weights = {}
     for u, v, w in edges_with_weights:
@@ -13,8 +17,8 @@ def find_all_pairs_longest_path(edges_with_weights):
     # keyとして使用するためfrozenset
     # value: (コスト, 辺のリスト)
     states = {frozenset(): (0, [])}
-    # 最長経路の辺と長さを保持する変数
-    longest_path_info = ([], -1)
+    # 最長経路の端点と辺と長さと保持する変数
+    longest_path_info = ({}, [], -1)
 
     # 辺を1本ずつ処理する
     for u, v in sorted_edges:
@@ -33,10 +37,6 @@ def find_all_pairs_longest_path(edges_with_weights):
             if degree_u >= 2 or degree_v >= 2:
                 continue
 
-            # uとvが既に同じパスの端点の場合、サイクルが形成されるためスキップ
-            # if mate.get(u) == v:
-            #     continue
-
             mate = dict(mate_frozenset)
 
             # 辺 {u, v} を追加することで、単純なサイクルが完成する場合
@@ -48,8 +48,8 @@ def find_all_pairs_longest_path(edges_with_weights):
                 new_path_edges = path_edges + [(u, v)]
 
                 # 全体の最長記録を更新
-                if new_cost > longest_path_info[1]:
-                    longest_path_info = (new_path_edges, new_cost)
+                if new_cost > longest_path_info[2]:
+                    longest_path_info = ({}, new_path_edges, new_cost)
                 # 単純サイクルを形成した状態は、これ以上伸長できないため、new_statesには追加せず、枝刈りする
                 continue
 
@@ -99,8 +99,8 @@ def find_all_pairs_longest_path(edges_with_weights):
     # かつコストが最大のものを見つける
     for mate_frozenset, (cost, path_edges) in states.items():
         if len(mate_frozenset) == 2: # 端点が2つ = 一本道
-            if cost > longest_path_info[1]:
-                longest_path_info = (path_edges, cost)
+            if cost > longest_path_info[2]:
+                longest_path_info = (dict(mate_frozenset), path_edges, cost)
 
     return longest_path_info
 
@@ -115,16 +115,67 @@ def read_graph():
 		v = int(parts[1])
 		weight = float(parts[2])
 
+		if u == v:
+			print(f"{Color.RED}Error:自己ループを含んでいます{Color.RESET}", file=sys.stderr)
+			sys.exit(1)
+
 		edges_with_weights.append((u, v, weight))
 
+	if len(edges_with_weights) == 0:
+		print(f"{Color.RED}Error:値を入力してください{Color.RESET}", file=sys.stderr)
+		sys.exit(1)
+
 	return edges_with_weights
+
+def print_path(longest_path_info):
+	mate_dict, path_edges, length = longest_path_info
+
+	adj = defaultdict(list)
+	for u, v in path_edges:
+		adj[u].append(v)
+		adj[v].append(u)
+
+	ordered_path = []
+	if not mate_dict:
+		start_node = path_edges[0][0] # 任意の一点を始点とする
+		current_node = start_node
+		prev_node = -1
+
+		while True:
+			ordered_path.append(current_node)
+			neighbors = adj[current_node]
+			next_node = neighbors[0] if neighbors[0] != prev_node else neighbors[1]
+			prev_node = current_node
+			current_node = next_node
+			if current_node == start_node:
+				break
+
+		ordered_path.append(start_node)
+
+	else:
+		start_node, end_node = mate_dict.keys()
+		current_node = start_node
+		prev_node = -1
+
+		while True:
+			ordered_path.append(current_node)
+			if current_node == end_node:
+				break
+			neighbors = adj[current_node]
+			next_node = neighbors[0] if neighbors[0] != prev_node else neighbors[1]
+			prev_node = current_node
+			current_node = next_node
+
+	answer = "\r\n".join(map(str, ordered_path))
+	print(f"{Color.GREEN}{answer}{Color.RESET}")
+	print(f"{Color.GREEN}経路: {path_edges}{Color.RESET}")
+	print(f"{Color.GREEN}長さ: {length}{Color.RESET}")
+
 
 if __name__ == '__main__':
 
 	edges_with_weights = read_graph()
-	path, length = find_all_pairs_longest_path(edges_with_weights)
+	longest_path_info = zdd(edges_with_weights)
 
-
-	print(f"  経路: {path}")
-	print(f"  長さ: {length}")
+	print_path(longest_path_info)
 
