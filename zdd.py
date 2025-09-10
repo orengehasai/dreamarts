@@ -95,16 +95,6 @@ def find_longest_route_zdd(edges_with_weights):
 
 	return longest_path_info
 
-def is_all_numeric(string_list):
-    for item in string_list:
-        try:
-            float(item)
-        except ValueError:
-            # 変換に失敗した場合 (数値ではない)
-            return False
-    # ループが最後まで完了すれば、すべて数値である
-    return True
-
 def read_graph():
 	edges_with_weights = []
 	while True:
