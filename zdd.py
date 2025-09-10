@@ -104,13 +104,13 @@ def read_graph():
 		try:
 			parts = line.replace(' ', '').split(',')
 			if len(parts) != 3:
-				raise ValueError(f"{Color.RED}Error:不正なフォーマットです{Color.RESET}")
+				raise ValueError(f"Error:不正なフォーマットです")
 			u = int(parts[0])
 			v = int(parts[1])
 			weight = float(parts[2])
 
 			if u == v:
-				raise ValueError(f"{Color.RED}Error:自己ループを含んでいます{Color.RESET}")
+				raise ValueError(f"Error:自己ループを含んでいます")
 
 			edges_with_weights.append((u, v, weight))
 		except ValueError as e:
